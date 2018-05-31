@@ -1,0 +1,41 @@
+---
+title: "PEs and P/B"
+author: "Karl Polen"
+date: "April 21, 2016"
+output: 
+  html_document:
+    keep_md: TRUE
+---
+Following are some charts for each of the SAA categories for our equity assets.  I present PE Ratio, Price to Book ratio and 360 day volatility.  On each chart I plot long term averages for these statistics -- red is 10 year moving average, green is 15 year moving average and purple is 20 year moving average.
+
+These are all pulled from Bloomberg but plotted in R.  (I couldn't figure out how to add the moving average lines for the statistics on the BBG, so did it in R.).  
+
+Note the data look funny for EAFE small cap.  I have contacted Bloomberg to check it.
+
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+require("Rbbg")
+require("lubridate")
+require("zoo")
+conn=blpConnect(verbose=FALSE)
+tickers=c("SPX Index","MID Index","SML Index","MXEA Index","MXEASC Index","MXEF Index")
+names(tickers)=c("S&P 500","Mid Cap","Small Cap","EAFE","EAFE Small","Emg Mkts")
+flds=c("PE_RATIO","PX_TO_BOOK_RATIO","VOLATILITY_360D")
+names(flds)=c("PE Ratio","Price to Book","360 Day Volatility")
+for (j in 1:length(tickers)) {
+  ticker=tickers[j]
+  tname=names(tickers)[j]
+  dat=bdh(conn,ticker,flds,Sys.Date()-(366*30),
+          option_names="periodicitySelection",option_values="MONTHLY")
+  maxval=c(35,5,40)
+  for(i in (1:length(flds))) {
+    s=zoo(dat[,1+i],as.Date(dat[,1])) 
+    ylim=c(min(s,na.rm=TRUE),min(max(s,na.rm=TRUE),maxval[i]))
+    plot(s,col="blue",main=tname,xlab='',ylab=names(flds)[i],ylim=ylim)
+    lines(rollapply(s,240,mean,align='right'),col='purple')
+    lines(rollapply(s,180,mean,align='right'),col='dark green')
+    lines(rollapply(s,120,mean,align='right'),col='red')
+  }
+}
+x=blpDisconnect(conn)
+```
